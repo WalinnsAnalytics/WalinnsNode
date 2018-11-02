@@ -376,83 +376,79 @@ app.post('/refferrer',function(req, res){
 
 
 app.post('/heatmap',function(req, res) {
-    console.log("heatmap API : ",moment().format());
-    console.log("heatmap API starts------------------------------------------------------------------");
+    console.log("\nHeatmap API Start at ", moment().format());
+    console.log("----------------------Heatmap API started successfully--------------------------");
 	
 	const project_token = req.headers['authorization'];
 	const device_id = req.body.device_id;
 	const date_time = req.body.date_time;
-	var screen_name = req.screen_name;
 	const img_data  = req.body.img_data;
 	const x_pos = req.body.x_pos;
 	const y_pos = req.body.y_pos;
-	if (screen_name == null) {
-		screen_name = "NORMAL SCREEN";
-	}
-    var data = {
-        "Data":""
-    };
+	var screen_name = req.body.screen_name;
 	var count = 1;
 	var heatmapId = 0;
+    //var data = {
+    //  "Data":""
+    //};
     connection.query("SELECT * FROM deviceinfodatas where device_id=? and project_token=?",[device_id, project_token],function(err, result, fields){
 		console.log("Fetched Device Info Record Length : " + result.length);
 		if(result.length != 0) {
-			const id = result[0].id;
-			console.log("Device ID of ", device_id, " is ", id);
-			// Validate Heatmap Details exist or not
-			connection.query("SELECT id FROM heatmap WHERE device_id=? AND screen_name=?",[device_id, screen_name],function(err, result, fields) {
-				if (err) throw err;
+			console.log("\t Device Map Id fetched successfully.");
+			var device_map_id = result[0].id;
+			console.log("\t Device Map Id : ", device_map_id, " of Device id is ", device_id);
+			connection.query("SELECT id FROM heatmap WHERE device_id=? AND screen_name=?",[device_map_id, screen_name],function(err, result, fields) {
 				console.log("Fetched Heatmap Record Length : " + result.length);
-				if(result.length == 0) {
+				console.log("\t Device Map Id : " + device_map_id + " Screen Name : " + screen_name);
+				if(result.length != 0) {
+					console.log("\t Heat Map Id fetched successfully.");
+					//console.log(result[0]);
+					heatmapId = result[0].id;
+					console.log("\t Device Id already exist & Heat Map ID : " + heatmapId);
+				} else {
 					var sql_insert_heatmap = 'INSERT INTO heatmap SET ?';
 					const  values_new = {
-						  device_id: id,
+						  device_id: device_map_id,
 						  screen_name: screen_name,
 						  img_data: img_data
 					};
 					connection.query(sql_insert_heatmap, values_new, function(error_new, out_new) {
 						if (!!error_new) {
 							console.log('Error in the query while adding heatmap data to  heatmap table');
-							data["Data"] = "Error in the query while adding heatmap data to  heatmap table ";
+							//data["Data"] = "Error in the query while adding heatmap data to  heatmap table ";
 							//res.json(data);
-							console.log(" heatmap API ends----------------------------------------------------------------");
 							//res.send("Error in the query");
+							console.log("-------------------Device Map Id successfully ends---------------------------------");
 							throw error_new;
 						} else {
-							console.log(out_new);
 							heatmapId = out_new.insertId;
-							console.log("Heat Map ID : " + heatmapId);
-							data["Data"] = " heatmap data is pushed ";
-							res.json(data);
-							console.log(" heatmap API ends----------------------------------------------------------------");
+							console.log("\t Heatmap Data Inserted Successfully.\t Heat Map ID : " + heatmapId);
+							//data["Data"] = " heatmap data is pushed ";
+							//res.json(data);
 						}
 					});
-				} else {
-					console.log(result);
-					heatmapId = result[0].id;
-					console.log("Heat Map ID : " + heatmapId);
 				}
 				connection.query("SELECT count FROM heatmapdetails WHERE heatmap_id=? AND x_pos=? AND y_pos=?", [heatmapId, x_pos, y_pos], function(err, result, fields) {
-					if (err) throw err;
 					console.log("Fetched Heatmap Details Record Length : " + result.length);
 					if(result.length != 0) {
 						count = result[0].count + 1;
+						console.log("\t Heat Map Details already exist. So only value count column to be incremented as " + count);
 						connection.query('UPDATE heatmapdetails SET count=? WHERE heatmap_id=? AND x_pos=? AND y_pos=?',[count, heatmapId, x_pos, y_pos],function(error_new, out_new) {
 							if (!!error_new) {
 								console.log('Error in the query while updating heatmap data to  heatmap details table');
-								data["Data"] = "Error in the query while updating heatmap data to  heatmap details table ";
+								//data["Data"] = "Error in the query while updating heatmap data to  heatmap details table ";
 								//res.json(data);
-								console.log(" heatmap details API ends----------------------------------------------------------------");
 								//res.send("Error in the query");
+								console.log("--------------------------Heatmap API ends with error----------------------------------------");
 								throw error_new;
 							} else {
-								console.log("Header Map Details Id : " + out_new.insertId);
-								data["Data"] = " heatmap details data is updated ";
-								res.json(data);
-								console.log(" heatmap details API ends----------------------------------------------------------------");
+								console.log("\t Heatmap details data updated successfully & Header Details Id : " + out_new.insertId);
+								//data["Data"] = " heatmap details data is updated ";
+								//res.json(data);
+								console.log("--------------------------Heatmap API ends successfully-----------------------------------");
 							}
 						});
-						console.log("Heat Map ID : " + heatmapId + " Count : " + count + " X-Pos : " + x_pos + " Y-Pos : " + y_pos);
+						console.log("\t Heat Map ID : " + heatmapId + " Count : " + count + " X-Pos : " + x_pos + " Y-Pos : " + y_pos);
 					} else {
 						var sql_insert_heatmap_details = 'INSERT INTO heatmapdetails SET ?';
 						console.log("Heat Map ID : " + heatmapId + " Count : " + count + " X-Pos : " + x_pos + " Y-Pos : " + y_pos);
@@ -465,27 +461,26 @@ app.post('/heatmap',function(req, res) {
 						connection.query(sql_insert_heatmap_details, values_heatmap_details, function(error_new, out_new) {
 							if (!!error_new) {
 								console.log('Error in the query while adding heatmap data to  heatmap details table');
-								data["Data"] = "Error in the query while adding heatmap data to  heatmap details table ";
+								//data["Data"] = "Error in the query while adding heatmap data to  heatmap details table ";
 								//res.json(data);
-								console.log(" heatmap details API ends----------------------------------------------------------------");
 								//res.send("Error in the query");
-								throw error_new;
+								console.log("--------------------------Heatmap API ends with error----------------------------------------");
 							} else {
-								console.log("Header Map Details Id : " + out_new.insertId);
-								data["Data"] = " heatmap details data is pushed ";
-								res.json(data);
-								console.log(" heatmap details API ends----------------------------------------------------------------");
+								console.log("\t Heatmap details data inserted successfully & Header Map Id : " + out_new.insertId);
+								//data["Data"] = " heatmap details data is pushed ";
+								//res.json(data);
+								console.log("--------------------------Heatmap API ends successfully-----------------------------------");
 							}
 						});
 					}
 				});
 			});
 		} else {
-			data["Data"] = "Authentication failed!";
-			console.log("Authentication failed!");
+			//data["Data"] = "Authentication failed!";
 			//data["Data"] = "Device doesn't exist in database. Please contact system administrator!";
-			res.json(data);
-			console.log("refferrer API ends----------------------------------------------------------------");
+			//res.json(data);
+			console.log("--------------------------Authentication failed!--------------------------");
+			console.log("--------------------------Heatmap API ends with error----------------------------------------");
 		}
 	});
 });
